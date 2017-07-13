@@ -1,0 +1,66 @@
+<!--
+    TEMPLATE PDF
+-->
+<apex:page showHeader="false" sidebar="false" standardController="Opportunity" expires="30" cache="true" renderAs="{!renderAs}" contentType="{!contentType}" standardStylesheets="false" applyBodyTag="true" applyHtmlTag="true" extensions="OpportunityExporterController">
+    
+    <apex:stylesheet value="{!$Resource.Bootstrap_CSS_3_3_7}" />
+    <apex:includeScript value="{!$Resource.Bootstrap_JS_3_3_7}" />
+    <apex:includeScript value="{!$Resource.JQuery_3_1_0}" />
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+    <meta name="viewport" content="width=device-width" />
+    <style type="text/css">
+    @import url('https://fonts.googleapis.com/css?family=Open+Sans');
+    body {
+        background-color: #eee !important;
+        font-family: Open Sans, sans-serif !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+    th {
+        font-family: Open Sans, sans-serif !important;
+        font-size: 18px !important;
+    }
+    td {
+        font-size: 14px !important;
+    }
+    </style>
+</head>
+
+<body>
+    <apex:outputPanel layout="block">
+        <apex:image value="{!$Resource.force_logo}" width="350" height="105"/>
+    </apex:outputPanel>
+
+    <div style="margin-top: 80px;" class="container-fluid">
+        
+        <!-- <apex:outputPanel layout="block">
+            <apex:outputText value="{!Contact.Name}," 
+            style="font-family: Open Sans, sans-serif !important; font-weight:bold; font-size:20px;"/><br/>
+            <apex:outputText value="{!Contact.Title}" 
+            style="font-family: Open Sans, sans-serif !important; font-size:18px !important;"/>
+        </apex:outputPanel> -->
+
+        <apex:outputPanel layout="block">
+            <table width="100%" align="center" class="table">
+                <thead>
+                    <tr>
+                        <apex:repeat var="header" value="{!tableColumns}">
+                            <th>{!header}</th>
+                        </apex:repeat>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                </tbody>
+            </table>
+        </apex:outputPanel>
+
+    </div>
+    
+</body>
+</apex:page>

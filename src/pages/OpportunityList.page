@@ -1,0 +1,153 @@
+<!-- 
+    OPPORTUNITY VIEW
+-->
+<apex:page showHeader="true" sidebar="true" standardController="Opportunity" recordSetVar="opptys" cache="true" expires="30" extensions="OpportunityExporterController" tabStyle="Opportunity" renderAs="{!renderAs}" contentType="{!contentType}">
+
+    <apex:stylesheet value="{!$Resource.Bootstrap_CSS_3_3_7}" />
+    <apex:includeScript value="{!$Resource.Bootstrap_JS_3_3_7}" />
+    <apex:includeScript value="{!$Resource.JQuery_3_1_0}"/>
+    
+    <apex:form id="opptyForm">
+        <apex:pageMessages escape="true" id="apexMessage" />
+
+        <apex:pageBlock title="Elenco Opportunità" id="opptyList" mode="edit" tabStyle="Opportunity">
+
+            <div style="margin-top: 10px !important;">
+                <apex:outputLabel value="Filtra per: " style="margin-left: 10px !important;"/>&nbsp;
+                <!-- Filtro di ricerca -->
+                <apex:selectList value="{!filterId}" size="1">
+
+                    <apex:selectOptions value="{!listViewOptions}" />
+                    <apex:actionSupport event="onchange" reRender="opptyList"/>
+
+                </apex:selectList>
+            </div>
+
+            <!-- Lista di Opportunity -->
+            <apex:pageBlockTable value="{!opptys}" var="o" width="100%" align="center" style="margin-top: 15px;" id="dataTable">
+
+                <apex:column value="{!o.Name}"/>
+                <apex:column value="{!o.Amount}"/>
+                <apex:column value="{!o.ExpectedRevenue}"/>
+                <apex:column value="{!o.StageName}"/>
+                <apex:column value="{!o.Probability}"/>
+                <apex:column value="{!o.Type}"/>
+                <apex:column value="{!o.ForecastCategory}"/>
+                <apex:column value="{!o.IsWon}"/>
+
+            </apex:pageBlockTable>
+
+            <!-- Paginator Tabella -->
+            <table style="margin-top: 10px !important; margin-bottom: 10px !important; padding-left: 10px; padding-right: 10px !important;" width="100%">
+                <tr>
+                    <td>
+                        Pagina: &nbsp;
+                        <apex:outputText value="{!PageNumber} di {!CEILING(ResultSize/PageSize)}"/>
+                    </td>
+                    <td align="center">
+                        <!-- previous page -->
+                        <!-- active -->
+                        <apex:commandLink action="{!Previous}" value="« Precedente" rendered="{!HasPrevious}"/>
+                        <!-- inactive -->
+                        <apex:outputText style="color: #ccc;" value="« Precedente" rendered="{!NOT(HasPrevious)}"/>
+                        &nbsp;&nbsp;
+                        <!-- next page -->
+                        <!-- active -->
+                        <apex:commandLink action="{!Next}" value="Prossimo »" rendered="{!HasNext}" />
+                        <!-- inactive -->
+                        <apex:outputText style="color: #ccc;" value="Prossimo »" rendered="{!NOT(HasNext)}"/>
+                    </td>
+                    <td align="right">
+                        <apex:outputLabel value="Record per pagina: "/>
+                        &nbsp;
+                        <apex:selectList value="{!PageSize}" size="1">
+                            <apex:selectOption itemValue="5" itemLabel="5"/>
+                            <apex:selectOption itemValue="20" itemLabel="20"/>
+                            <apex:actionSupport event="onchange" reRender="opptyList"/>
+                        </apex:selectList>
+                    </td>
+                </tr>
+            </table>
+
+        </apex:pageBlock>
+
+        <apex:pageBlock rendered="{!NOT(ISNULL(opptys))}">
+            <apex:pageBlockSection collapsible="true" title="Exporter" showHeader="true" columns="2">
+
+                <apex:pageBlockSectionItem >
+
+                    <apex:outputText id="lblName" value="Nome: " label="name"/>
+                    <apex:inputText id="name" value="{!fileName}" tabindex="1"/>
+
+                </apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem >
+
+                    <apex:outputText id="lblExport" value="Esporta come: " label="export"/>
+                    <apex:selectRadio id="export" value="{!radioChoice}">
+                        <apex:selectOptions value="{!exportOptions}"/>
+                  </apex:selectRadio>                   
+
+                </apex:pageBlockSectionItem>
+
+            </apex:pageBlockSection>
+
+            <apex:pageBlockButtons lang="en" location="bottom">
+                    
+                <apex:commandButton value="Esporta" action="{!btnExportRecords}"/>
+                <apex:commandButton value="Indietro" action="{!btnGoBack}" immediate="true"/>
+
+            </apex:pageBlockButtons>
+        </apex:pageBlock>
+
+    </apex:form>
+
+    <script type="text/javascript">
+        var output = null;
+        var $ = jQuery.noConflict();
+
+        $(function() {
+            var jsonHeaders = [];
+
+            var remoteOptions = {
+                buffer: true,
+                escape: true
+            };
+
+            //table headers
+            var rows = document.querySelector("[id$='dataTable']")[0].rows;
+            var last = rows[rows.length - 1];
+            var cells = last.cells;
+            cells.forEach(function(v,i) {
+                var cell = v.innerText;
+                jsonHeaders.push(cell);
+            });
+
+            console.info("Table <th>'s: " + jsonHeaders);
+            var jsonHeaders = JSON.parse($tabHeaders);
+
+
+            Visualforce.Remoting.timeout = 120000;
+
+            //get all column names from datatable
+            OpportunityExporterController
+                .getColumnHeaders_Remoting(jsonHeaders, callback, remoteOptions);
+
+            if(!output) {
+                window.alert("Unable to parse the Remote Action response.");
+            }
+
+
+        });
+
+        function callback(result, event) {
+            if (event.status) {
+                console.info("Result:", result);
+                output = result;
+            } else {
+                window.alert(event.message);
+            } 
+        }
+    </script>
+
+</apex:page>

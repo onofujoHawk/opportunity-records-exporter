@@ -1,0 +1,90 @@
+<!--
+    TEMPLATE JSON, CSV
+-->
+<apex:page showHeader="false" sidebar="false" standardController="Opportunity" expires="30" cache="true" renderAs="{!renderAs}" contentType="{!contentType}" standardStylesheets="false" applyBodyTag="true" applyHtmlTag="true" extensions="OpportunityExporterController">
+
+	<apex:stylesheet value="{!$Resource.Bootstrap_CSS_3_3_7}" />
+    <apex:includeScript value="{!$Resource.Bootstrap_JS_3_3_7}" />
+    <apex:includeScript value="{!$Resource.JQuery_3_1_0}" />
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+    <meta name="viewport" content="width=device-width" />
+    <style type="text/css">
+    @import url('https://fonts.googleapis.com/css?family=Open+Sans');
+    body {
+        background-color: #eee !important;
+        font-family: Open Sans, sans-serif !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+    </style>
+</head>
+
+<body>
+	<div class="container-fluid">
+
+		<!-- for json -->
+		<div id="jsonStr" style="display: none;" class="col-md-6 col-xs-12">
+			<section>{!bodyJson}</section>
+		</div>
+
+		<!-- for csv -->
+		<div id="csvStr" style="display: none;" class="col-md-6 col-xs-12">
+			<section id="csvHeader">
+				
+			</section>
+			<section id="csvBody">
+				
+			</section>
+		</div>
+
+	</div>
+</body>
+
+<script type="text/javascript">
+	var $ = jQuery.noConflict();
+	var csvElems = [];
+
+    $(function() {
+        if("{!renderAs}" == "csv") {
+            //hide div json
+            document.getElementById("jsonStr").style.display = "none";
+
+            var remoteOptions = {
+                buffer: true,
+                escape: true
+            };
+
+            Visualforce.Remoting.timeout = 120000;
+
+            //get the csv header and body
+            OpportunityExporterController.getCsvString_Remoting(callback, remoteOptions);
+
+            if(typeof csvElems !== 'undefined' && csvElems.length > 0) {
+            	$("#csvHeader").html(csvElems[0]);
+            	$("#csvBody").html(csvElems[1]);
+            } else {
+            	window.alert("Unable to parse the Remote Action response.");
+            }
+
+
+        } else if("{!renderAs}" == "json") {
+        	//hide div csv
+            document.getElementById("csvStr").style.display = "none";
+        }
+        
+    });
+
+    function callback(result, event) {
+    	if(event.status) {
+    		csvElems = JSON.parse(result);
+    	} else {
+    		window.alert(event.message);
+    	}
+    }
+</script>
+</apex:page>
