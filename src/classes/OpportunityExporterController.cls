@@ -30,12 +30,26 @@ global with sharing class OpportunityExporterController {
     private static List<Opportunity> opportunities_st;
 
     //getter and setters
-    private static List<Opportunity> getOpportunities() {
+    public static List<Opportunity> getOpportunities() {
         return OpportunityExporterController.opportunities_st;
     }
 
-    private static Opportunity getOpportunity() {
+    public static Opportunity getOpportunity() {
         return opportunity_st;
+    }
+
+    private static void setOpportunities(List<SObject> o) {
+        if(opportunities_st == null) {
+            opportunities_st = new List<Opportunity>();
+        }
+        if(!opportunities_st.isEmpty()) {
+            opportunities_st.clear();
+        }
+        OpportunityExporterController.opportunities_st = (List<Opportunity>)o;
+    }
+
+    private static void setOpportunity(SObject o) {
+        OpportunityExporterController.opportunity_st = (Opportunity)o;
     }
 
     /**

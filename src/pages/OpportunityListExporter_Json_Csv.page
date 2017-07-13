@@ -35,10 +35,8 @@
 		<!-- for csv -->
 		<div id="csvStr" style="display: none;" class="col-md-6 col-xs-12">
 			<section id="csvHeader">
-				
 			</section>
 			<section id="csvBody">
-				
 			</section>
 		</div>
 
