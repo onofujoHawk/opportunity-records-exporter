@@ -43,9 +43,9 @@
         console.info("{!renderAs}");
         console.info("{!contentType}");
 
-        if ("{!contentType}".indexOf("text/csv") === -1) {
+        if ("{!contentType}".indexOf("application/csv") === -1) {
         	var renderAsJs = "html";
-            var contentTypeJs = "text/csv;charset=utf-8";
+            var contentTypeJs = "application/csv;charset=utf-8";
             OpportunityExporterController.setContentType(renderAsJs, contentTypeJs, 
         	function(result, event) {
         		if(event.status) {
