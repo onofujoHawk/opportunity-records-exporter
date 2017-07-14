@@ -2,10 +2,6 @@
     OPPORTUNITY VIEW
 -->
 <apex:page showHeader="true" sidebar="true" standardController="Opportunity" recordSetVar="opptys" cache="true" expires="30" extensions="OpportunityExporterController" tabStyle="Opportunity" renderAs="{!renderAs}" contentType="{!contentType}">
-
-    <apex:stylesheet value="{!$Resource.Bootstrap_CSS_3_3_7}" />
-    <apex:includeScript value="{!$Resource.Bootstrap_JS_3_3_7}" />
-    <apex:includeScript value="{!$Resource.JQuery_3_1_0}"/>
     
     <apex:form id="opptyForm">
         <apex:pageMessages escape="true" id="apexMessage" />
@@ -102,52 +98,47 @@
 
     </apex:form>
 
-    <script type="text/javascript">
-        var output = null;
-        var $ = jQuery.noConflict();
+<apex:includeScript value="{!$Resource.JQuery_3_1_0}"/>
+<script type="text/javascript">
+    var output = null;
+    var $ = jQuery.noConflict();
 
-        $(function() {
-            var jsonHeaders = [];
+    $(function() {
+        var jsonHeaders = undefined;
+        var columnNames = [];
 
-            var remoteOptions = {
-                buffer: true,
-                escape: true
-            };
+        var remoteOptions = {
+            buffer: true,
+            escape: true,
+            timeout: 120000
+        };
 
-            //table headers
-            var rows = document.querySelector("[id$='dataTable']")[0].rows;
-            var last = rows[rows.length - 1];
-            var cells = last.cells;
-            cells.forEach(function(v,i) {
-                var cell = v.innerText;
-                jsonHeaders.push(cell);
-            });
+        //table headers
+        var cells = $("table[id$='dataTable'] th");
+        for( var i = 0; i < cells.length; i++) {
+            console.info(cells[i].innerText);
+            columnNames.push(cells[i].innerText);
+        }
 
-            console.info("Table <th>'s: " + jsonHeaders);
-            var jsonHeaders = JSON.parse($tabHeaders);
+        console.info("Table <th>'s: " + columnNames);
+        var jsonHeaders = JSON.stringify(columnNames);
 
 
-            Visualforce.Remoting.timeout = 120000;
+        //get all column names from datatable
+        OpportunityExporterController
+            .getColumnHeaders_Remoting(jsonHeaders, callback, remoteOptions);
 
-            //get all column names from datatable
-            OpportunityExporterController
-                .getColumnHeaders_Remoting(jsonHeaders, callback, remoteOptions);
+    });
 
+    function callback(result, event) {
+        if (event.status) {
+            output = result;
             if(!output) {
                 window.alert("Unable to parse the Remote Action response.");
             }
-
-
-        });
-
-        function callback(result, event) {
-            if (event.status) {
-                console.info("Result:", result);
-                output = result;
-            } else {
-                window.alert(event.message);
-            } 
-        }
-    </script>
-
+        } else {
+            window.alert(event.message);
+        } 
+    }
+</script>
 </apex:page>

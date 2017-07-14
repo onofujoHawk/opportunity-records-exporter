@@ -3,7 +3,7 @@
     <apiVersion>39.0</apiVersion>
     <availableInTouch>false</availableInTouch>
     <confirmationTokenRequired>false</confirmationTokenRequired>
-    <label>OpportunityListExporter_Json_Csv</label>
+    <label>OpportunityListExporter_Json</label>
     <packageVersions>
         <majorNumber>1</majorNumber>
         <minorNumber>11</minorNumber>

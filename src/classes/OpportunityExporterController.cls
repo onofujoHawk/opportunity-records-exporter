@@ -7,20 +7,20 @@
  */
 global with sharing class OpportunityExporterController {
     //Standard controller params
-    private ApexPages.StandardController stdController;
-    private ApexPages.StandardSetController stdSetController;
-    private String baseUrl;
+    private final ApexPages.StandardController stdController;
+    private final ApexPages.StandardSetController stdSetController;
     private final Opportunity opportunity;
     private final List<Opportunity> opportunities;
-    private Map<String,String> params;
+    private final Map<String,String> params;
+    private String baseUrl;
     private static final String separator = '\n';
 
     //Visualforce params
-    public String renderAs {get; set;}
-    public String contentType {get; set;}
     public String radioChoice {get; set;}
-    public String fileName {get; set;}
     public String bodyJson {get; set;}
+    public static String fileName {get; set;}
+    public static String renderAs {get; set;}
+    public static String contentType {get; set;}
 
     //Remote action params
     public static String headerCsv {get; set;}
@@ -29,7 +29,7 @@ global with sharing class OpportunityExporterController {
     private static Opportunity opportunity_st;
     private static List<Opportunity> opportunities_st;
 
-    //getter and setters
+    //Getter and setters
     public static List<Opportunity> getOpportunities() {
         return OpportunityExporterController.opportunities_st;
     }
@@ -45,7 +45,11 @@ global with sharing class OpportunityExporterController {
         if(!opportunities_st.isEmpty()) {
             opportunities_st.clear();
         }
+
         OpportunityExporterController.opportunities_st = (List<Opportunity>)o;
+
+        System.debug(LoggingLevel.INFO, 'setOpportunities: ' + opportunities_st);
+
     }
 
     private static void setOpportunity(SObject o) {
@@ -63,17 +67,36 @@ global with sharing class OpportunityExporterController {
         stdController = stdController;
         this.radioChoice = '';
         opportunity = (Opportunity)stdController.getRecord();
-        OpportunityExporterController.opportunity_st = opportunity;
         params = ApexPages.currentPage().getParameters();
-        baseUrl = Url.getSalesforceBaseUrl().toExternalForm();
-        
-        System.debug(LoggingLevel.DEBUG, 'Opportunity Record: ' + opportunity);
+        baseUrl = Url.getCurrentRequestUrl().toExternalForm();
+
+        System.debug(LoggingLevel.INFO, 'StandardController: Current request URL ' + baseUrl);
+
+        if (baseUrl.containsIgnoreCase('pdf')) {
+            //render as pdf
+            renderAs = 'pdf';
+            contentType = 'application/pdf;charset=utf-8';
+        } else if (baseUrl.containsIgnoreCase('json')) {
+            //render as json
+            renderAs = 'html';
+            contentType = 'application/x-JavaScript;charset=utf-8';
+        } else if (baseUrl.containsIgnoreCase('csv')) {
+            //render as csv
+            renderAs = 'html';
+            contentType = 'text/csv;charset=utf-8';
+        } else {
+            //default is html
+            contentType = 'text/html;charset=utf-8';
+            renderAs = 'html';
+        }
+
+        System.debug(LoggingLevel.FINEST, ' Content-Type: ' + contentType + ' | Render as: ' + renderAs + ' |');
+        System.debug(LoggingLevel.DEBUG, 'StandardController: Opportunity Record ' + opportunity);
+
+
         if (opportunity == null || opportunity_st == null) {
             btnGoBack();
         }
-
-        contentType = 'text/html;charset=utf-8';
-        renderAs = 'html';
     }
 
     /**
@@ -87,17 +110,36 @@ global with sharing class OpportunityExporterController {
         stdSetController = stdSetController;
         this.radioChoice = '';
         opportunities = (List<Opportunity>)stdSetController.getRecords();
-        OpportunityExporterController.opportunities_st = opportunities;
         params = ApexPages.currentPage().getParameters();
-        baseUrl = Url.getSalesforceBaseUrl().toExternalForm();
+        baseUrl = Url.getCurrentRequestUrl().toExternalForm();
+
+        System.debug(LoggingLevel.INFO, 'StandardSetController: Current request URL ' + baseUrl);
+
+        if (baseUrl.containsIgnoreCase('pdf')) {
+            //render as pdf
+            renderAs = 'pdf';
+            contentType = 'application/pdf;charset=utf-8';
+        } else if (baseUrl.containsIgnoreCase('json')) {
+            //render as json
+            renderAs = 'html';
+            contentType = 'application/x-JavaScript;charset=utf-8';
+        } else if (baseUrl.containsIgnoreCase('csv')) {
+            //render as csv
+            renderAs = 'html';
+            contentType = 'text/csv;charset=utf-8';
+        } else {
+            //default is html
+            renderAs = 'html';
+            contentType = 'text/html;charset=utf-8';
+        }
         
-        System.debug(LoggingLevel.DEBUG, 'Opportunity Records: ' + opportunities);
-        if ((opportunities == null || opportunities.isEmpty()) && (opportunities_st == null || opportunities_st.isEmpty())) {
+        System.debug(LoggingLevel.FINEST, ' Content-Type: ' + contentType + ' | Render as: ' + renderAs + ' |');
+        System.debug(LoggingLevel.DEBUG, 'StandardSetController: Opportunity Records ' + opportunities);
+
+        
+        if (opportunities == null || opportunities_st == null) {
             btnGoBack();
         }
-
-        contentType = 'text/html;charset=utf-8';
-        renderAs = 'html';
     }
 
     /**
@@ -129,6 +171,7 @@ global with sharing class OpportunityExporterController {
                     render_Json();
             }
         else {
+
             OpportunityExporterController.addMessage(ApexPages.Severity.FATAL, 'An error has occurred');
             return 
                 null;
@@ -142,39 +185,70 @@ global with sharing class OpportunityExporterController {
      * @author Onofrio Falco
      */
     public PageReference render_Pdf() {
-        PageReference currentPage = stdController.view();
+        PageReference currentPage = ApexPages.currentPage();
         PageReference ref = Page.OpportunityListExporter_Pdf;
         ref.setRedirect(true);
 
+        List<Attachment> attachments = new List<Attachment>();
+        if (opportunities_st == null || opportunities_st.isEmpty()) {
+            OpportunityExporterController.setOpportunities(opportunities);
+        }
+
         Blob body;
-        String filename = 'opportunity.pdf'; 
+        String defaultFilename = 'opportunity.pdf'; 
         Integer counter;
+        Database.SaveResult dbRes = null;
 
         try {
             body = currentPage.getContentAsPDF();
-        } catch (VisualforceException e) {
+        } catch (VisualforceException v) {
             body = Blob.valueOf('Some Text');
+
+
+        } catch (Exception e) 
+        {
+            String fatalMsg = e.getMessage() + ' on line ' + e.getLineNumber();
+
+            System.debug(LoggingLevel.ERROR, e.getMessage() + ' on line ' + e.getLineNumber());
+            OpportunityExporterController.addMessage(ApexPages.Severity.FATAL, fatalMsg);
+            return null;
+
         } finally {
-            Attachment exist = [Select Name from Attachment where Name Like 'opportunity%'];
-            if (exist != null) {
-                String attachmentName = exist.Name.split('.')[0];
+
+            attachments = [Select Name from Attachment where Name Like 'opportunity%.pdf' order by CreatedDate desc];
+            
+            if (!attachments.isEmpty()) {
+                Attachment singleAttachment = attachments.get(0);
+
+                System.debug(LoggingLevel.DEBUG, 'Attachment Pdf: ' + singleAttachment.Name);
+
+                String attachmentName = singleAttachment.Name.split('\\.')[0];
                 String lastChar = attachmentName.substring(attachmentName.length() - 1);
+                
                 try {
                     counter = Integer.valueOf(lastChar);
-                    filename = 'opportunity' + String.valueOf(counter) + '.pdf';
+                    defaultFilename = 'opportunity' + String.valueOf(counter) + '.pdf';
                 } catch (TypeException t) {
                     //is not a digit
                     System.debug(LoggingLevel.ERROR, lastChar + ' is not a digit: ' + t.getMessage() + ' on line ' + t.getLineNumber());
-                    filename = 'opportunity.pdf';
+                    defaultFilename = 'opportunity.pdf';
                 }  
             }
+
+            if(fileName != null) 
+            {
+                dbRes = Database.insert(new Attachment(Body = body, Name = defaultFilename, IsPrivate = false, 
+                    ContentType = 'application/pdf;charset=utf-8', ParentId = getRandomOpportunity().Id));
+            } 
+            else 
+            {
+                dbRes = Database.insert(new Attachment(Body = body, Name = defaultFilename, IsPrivate = false, 
+                    ContentType = 'application/pdf;charset=utf-8', ParentId = getRandomOpportunity().Id));
+            }
             
-            insert new Attachment(Body = body, Name = filename, IsPrivate = false, 
-                ContentType = 'application/pdf;charset=utf-8');
+        
         }
         
-        contentType = 'application/pdf;charset=utf-8';
-        renderAs = 'pdf';
         return 
             new PageReference(ref.getUrl());
     }
@@ -186,12 +260,72 @@ global with sharing class OpportunityExporterController {
      * @author Onofrio Falco
      */
     public PageReference render_Json() {
-        PageReference ref = Page.OpportunityListExporter_Json_Csv;
+        PageReference ref = Page.OpportunityListExporter_Json;
         ref.setRedirect(true);
         List<Opportunity> opportunities = getOpportunities();
         this.bodyJson = Json.serializePretty(opportunities);
-        contentType = 'application/json;charset=utf8';
-        renderAs = 'json';
+        Blob body = Blob.valueOf(bodyJson);
+
+        if(opportunities_st == null || opportunities_st.isEmpty()) {
+            OpportunityExporterController.setOpportunities(opportunities);
+        }
+
+        Integer counter;
+        List<Attachment> attachments = new List<Attachment>();
+        String defaultFileName = 'opportunity.json';
+        String lastChar;
+        Database.SaveResult dbRes = null;
+        
+        try {
+            attachments = [Select Name from Attachment where Name Like 'opportunity%.json' order by CreatedDate desc];
+
+            if (!attachments.isEmpty()) {
+                Attachment singleAttachment = attachments.get(0);
+
+                System.debug(LoggingLevel.DEBUG, 'Attachment Json: ' + singleAttachment.Name);
+
+                String attachmentName = singleAttachment.Name.split('\\.')[0];
+                lastChar = attachmentName.substring(attachmentName.length() - 1);
+                
+                try {
+                    counter = Integer.valueOf(lastChar);
+                    defaultFileName = 'opportunity' + String.valueOf(counter) + '.json';
+                } catch (TypeException t) {
+                    //is not a digit
+                    System.debug(LoggingLevel.ERROR, lastChar + ' is not a digit: ' + t.getMessage() + ' on line ' + t.getLineNumber());
+                    defaultFileName = 'opportunity.json';
+                }  
+            }
+
+        } catch(TypeException t) {
+            System.debug(LoggingLevel.ERROR, lastChar + ' is not a digit: ' + t.getMessage() + ' on line ' + t.getLineNumber());
+        
+        } catch(Exception e) 
+        {
+
+            String fatalMsg = e.getMessage() + ' on line ' + e.getLineNumber();
+
+            System.debug(LoggingLevel.ERROR, e.getMessage() + ' on line ' + e.getLineNumber());
+            OpportunityExporterController.addMessage(ApexPages.Severity.FATAL, fatalMsg);
+            return null;
+
+
+        } finally {
+
+            if(fileName != null) 
+            {
+                dbRes = Database.insert(new Attachment(Body = body, Name = fileName, IsPrivate = false, 
+                    ContentType = 'application/x-Javascript;charset=utf-8', ParentId = getRandomOpportunity().Id));
+            } 
+            else 
+            {
+                dbRes = Database.insert(new Attachment(Body = body, Name = defaultFilename, IsPrivate = false, 
+                    ContentType = 'application/x-Javascript;charset=utf-8', ParentId = getRandomOpportunity().Id));
+            }
+            
+        
+        }
+
         return
             new PageReference(ref.getUrl());
     }
@@ -203,84 +337,10 @@ global with sharing class OpportunityExporterController {
      * @author Onofrio Falco
      */
     public PageReference render_Csv() {
-        PageReference ref = Page.OpportunityListExporter_Json_Csv;
+        PageReference ref = Page.OpportunityListExporter_Csv;
         ref.setRedirect(true);
-        OpportunityExporterController.headerCsv = '"';
-        OpportunityExporterController.bodyCsv = '"';
-        contentType = 'text/csv;charset=utf-8';
-        renderAs = 'csv';
         return 
             new PageReference(ref.getUrl());
-    }
-
-    @RemoteAction
-    global static Boolean getColumnHeaders_Remoting(String jsonHeaders) {
-
-        List<String> headers = (List<String>) Json.deserializeStrict(jsonHeaders, List<String>.class);
-        Iterator<String> iter = headers.iterator();
-        while(iter.hasNext()) {
-            String header = iter.next();
-            headerCsv += header;
-            headerCsv += '"';
-            if (iter.hasNext()) {
-                headerCsv += ','; 
-            }
-            
-            tableColumns.add(header);
-        }
-
-        //add separator
-        OpportunityExporterController.headerCsv += separator;
-
-        System.debug('Header CSV: ' + headerCsv);
-
-        //CSV string regex
-        //alternative:  (?:^|,)(\\\"(?:[^\\\"]+|\\\"\\\")*\\\"|[^,]*)
-        Pattern p = Pattern.compile('^(?:(?:"((?:""|[^"])+)"|([^,]*))(?:$|,))+$');
-        Matcher m = p.matcher(headerCsv);
-
-        if(String.isNotBlank(headerCsv) && m.find())
-            return 
-                true;
-        else
-            return 
-                false;
-    }
-
-    /**
-     * [asCsv_RemoteAction description]
-     * called from Visualforce page "OpportunityListExporter.page"
-     * @param  jsonHeader table header values as json
-     * @return            csv text
-     *
-     * @author Onofrio Falco
-     */
-    @RemoteAction
-    global static String getCsvString_Remoting() {
-        String comma = '",';
-        Iterator<Opportunity> iterOppty = getOpportunities().iterator();
-        while(iterOppty.hasNext()) {
-            Opportunity opp = iterOppty.next();
-
-            //build body csv string
-            bodyCsv += opp.Name + comma + opp.Amount + comma + opp.ExpectedRevenue + 
-            comma + opp.StageName + comma + opp.Probability + comma + opp.Type + comma + 
-            opp.ForecastCategory + comma + opp.IsWon + '"';
-            
-            if (iterOppty.hasNext()) {
-                bodyCsv += separator; //add separator
-                bodyCsv += '"';
-            }
-        }
-
-        bodyCsv += separator;
-        headerCsv = headerCsv.trim();
-        bodyCsv = bodyCsv.trim();
-
-        System.debug('Body CSV: ' + bodyCsv);
-
-        return 
-            Json.serializePretty(new String[] { headerCsv, bodyCsv });
     }
 
     /**
@@ -335,6 +395,161 @@ global with sharing class OpportunityExporterController {
 
     public static void addMessage(ApexPages.Severity severity, String message) {
         ApexPages.addMessage(new ApexPages.message(severity, message));
+    }
+
+    /**
+     * Extract a random Opportunity from Standard Set controller
+     * @return an Opportunity
+     *
+     * @author Onofrio Falco
+     */
+    public static Opportunity getRandomOpportunity() {
+        Integer randGen = Math.mod(Math.abs(Crypto.getRandomInteger()), opportunities_st.size());
+        return 
+            opportunities_st.get(randGen);
+    }
+
+    /**
+     * [getColumnHeaders_Remoting description]
+     * called from Visualforce page "OpportunityListExporter_Pdf.page"
+     * @param  jsonHeaders table headers in json
+     * @return             a boolean
+     *
+     * @author Onofrio Falco
+     */
+    @RemoteAction
+    global static Boolean getColumnHeaders_Remoting(String jsonHeaders) {
+        tableColumns = new List<String>();
+        OpportunityExporterController.headerCsv = '';
+
+        List<String> objectDeserialized = (List<String>)Json.deserialize(jsonHeaders, List<String>.class);
+        System.debug('Object deserialized: ' + objectDeserialized);
+        
+        Iterator<String> iter = objectDeserialized.iterator();
+        while(iter.hasNext()) {
+            String header = iter.next();
+            headerCsv += header;
+            if (iter.hasNext()) {
+                headerCsv += ','; 
+            }
+            
+            tableColumns.add(header);
+        }
+
+        //add separator
+        OpportunityExporterController.headerCsv += separator;
+
+        System.debug('Header CSV: ' + headerCsv);
+
+        
+
+        if(String.isNotBlank(headerCsv))
+            return 
+                true;
+        else
+            return 
+                false;
+    }
+
+    /**
+     * [asCsv_RemoteAction description]
+     * called from Visualforce page "OpportunityListExporter_Csv.page"
+     * @param  jsonHeader table header values as json
+     * @return            csv text
+     *
+     * @author Onofrio Falco
+     */
+    @RemoteAction
+    global static String getCsvString_Remoting() {
+        OpportunityExporterController.bodyCsv = '"';
+        Database.SaveResult dbRes = null;
+
+
+        String comma = '",';
+        
+        Iterator<Opportunity> iterOppty = getOpportunities().iterator();
+        while(iterOppty.hasNext()) {
+            Opportunity opp = iterOppty.next();
+
+            //build body csv string
+            bodyCsv += opp.Name + comma + opp.Amount + comma + opp.ExpectedRevenue + 
+            comma + opp.StageName + comma + opp.Probability + comma + opp.Type + comma + 
+            opp.ForecastCategory + comma + opp.IsWon + '"';
+            
+            if (iterOppty.hasNext()) {
+                bodyCsv += separator; //add separator
+                bodyCsv += '"';
+            }
+        }
+
+        bodyCsv += separator;
+        headerCsv = headerCsv.trim();
+        bodyCsv = bodyCsv.trim();
+
+        System.debug('Body CSV: ' + bodyCsv);
+
+        //CSV string regex
+        //alternative:  (?:^|,)(\\\"(?:[^\\\"]+|\\\"\\\")*\\\"|[^,]*)
+        Pattern p = Pattern.compile('^(?:(?:"((?:""|[^"])+)"|([^,]*))(?:$|,))+$');
+        Matcher m = p.matcher(bodyCsv);
+
+        if ((String.isBlank(headerCsv) || String.isBlank(bodyCsv)) && !m.find()) {
+            return null;
+        }
+
+
+        Blob body = Blob.valueOf(headerCsv + bodyCsv);
+        Integer counter;
+        String defaultFileName = 'opportunity.csv';
+
+        List<Attachment> attachments = [Select Name from Attachment where Name Like 'opportunity%.csv' order by CreatedDate desc];
+
+        if(attachments.isEmpty()) {
+            Attachment singleAttachment = attachments.get(0);
+            System.debug(LoggingLevel.DEBUG, 'Attachment Csv: ' + singleAttachment.Name);
+
+            String attachmentName = singleAttachment.Name.split('\\.')[0];
+            String lastChar = attachmentName.substring(attachmentName.length() - 1);
+            
+            try {
+                counter = Integer.valueOf(lastChar);
+                defaultFileName = 'opportunity' + String.valueOf(counter) + '.csv';
+            } catch (TypeException t) {
+                //is not a digit
+                System.debug(LoggingLevel.ERROR, lastChar + ' is not a digit: ' + t.getMessage() + ' on line ' + t.getLineNumber());
+                defaultFileName = 'opportunity.csv';
+            }  
+        }
+
+        if(fileName != null) 
+        {
+            dbRes = Database.insert(new Attachment(Body = body, Name = fileName, IsPrivate = false, 
+                ContentType = 'application/pdf;charset=utf-8', ParentId = getRandomOpportunity().Id));
+        } 
+        else 
+        {
+            dbRes = Database.insert(new Attachment(Body = body, Name = defaultFilename, IsPrivate = false, 
+                ContentType = 'application/pdf;charset=utf-8', ParentId = getRandomOpportunity().Id));
+        }
+            
+        
+
+        return 
+            Json.serializePretty(new String[] { headerCsv, bodyCsv });
+    }
+
+    /**
+     * Set the content-type of Visualforce page
+     * @param  renderAs     first attribute
+     * @param  contentType  second attribute
+     * @return             [void]
+     *
+     * @author Onofrio Falco
+     */
+    @RemoteAction
+    global static void setContentType_Remoting(String renderAs, String contentType) {
+        OpportunityExporterController.contentType = contentType;
+        OpportunityExporterController.renderAs = renderAs;
     }
 
     /**

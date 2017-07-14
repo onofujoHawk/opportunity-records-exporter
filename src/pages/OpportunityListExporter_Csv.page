@@ -1,0 +1,87 @@
+<!--
+    TEMPLATE CSV
+-->
+<apex:page showHeader="false" sidebar="false" standardController="Opportunity" expires="30" cache="true" renderAs="{!renderAs}" contentType="{!contentType}" standardStylesheets="false" applyBodyTag="true" applyHtmlTag="true" extensions="OpportunityExporterController" showChat="false">
+
+	<apex:stylesheet value="{!$Resource.Bootstrap_CSS_3_3_7}" />
+    <apex:includeScript value="{!$Resource.Bootstrap_JS_3_3_7}" />
+    <apex:includeScript value="{!$Resource.JQuery_3_1_0}" />
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+    <meta name="viewport" content="width=device-width" />
+    <style type="text/css">
+    @import url('https://fonts.googleapis.com/css?family=Open+Sans');
+    body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+    </style>
+</head>
+
+<body>
+	<div class="container-fluid">
+		<div class="col-md-6 col-xs-12">
+			<div id="csvHeader">
+
+			</div>
+			<div id="csvBody">
+
+			</div>
+		</div>
+	</div>
+</body>
+
+<script type="text/javascript">
+    var $ = jQuery.noConflict();
+    var csvElems = [];
+
+    $(function() {
+        console.info("{!renderAs}");
+        console.info("{!contentType}");
+
+        if ("{!contentType}".indexOf("text/csv") === -1) {
+        	var renderAsJs = "html";
+            var contentTypeJs = "text/csv;charset=utf-8";
+            OpportunityExporterController.setContentType(renderAsJs, contentTypeJs, 
+        	function(result, event) {
+        		if(event.status) {
+        			//do nothing
+        		} else {
+        			window.alert(event.message);
+        		}
+            }, 
+            remoteOptions);
+        }
+    
+        var remoteOptions = {
+            buffer: true,
+            escape: true,
+            timeout: 120000
+        };
+
+
+        //get the csv header and body
+        OpportunityExporterController.getCsvString_Remoting(callback, remoteOptions);
+
+        if(typeof csvElems !== 'undefined' && csvElems.length > 0) {
+            $("#csvHeader").html(csvElems[0]);
+            $("#csvBody").html(csvElems[1]);
+        } else {
+            window.alert("Unable to parse the Remote Action response.");
+        }
+    });
+
+    function callback(result, event) {
+        if(event.status) {
+            csvElems = JSON.parse(result);
+        } else {
+            window.alert(event.message);
+        }
+    }
+</script>
+</apex:page>
+    
