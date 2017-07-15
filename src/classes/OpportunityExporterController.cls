@@ -57,7 +57,7 @@ global with sharing class OpportunityExporterController {
     }
 
     /**
-     * StandardController constructor
+     * StandardController CONSTRUCTOR
      * @param  stdController [description]
      * @return               void
      *
@@ -100,7 +100,7 @@ global with sharing class OpportunityExporterController {
     }
 
     /**
-     * StandardSETController constructor
+     * StandardSETController CONSTRUCTOR
      * @param  stdSetController [description]
      * @return                  is void
      *
@@ -126,7 +126,7 @@ global with sharing class OpportunityExporterController {
         } else if (baseUrl.containsIgnoreCase('csv')) {
             //render as csv
             renderAs = 'html';
-            contentType = 'text/csv;charset=utf-8';
+            contentType = 'application/csv;charset=utf-8';
         } else {
             //default is html
             renderAs = 'html';
@@ -143,7 +143,7 @@ global with sharing class OpportunityExporterController {
     }
 
     /**
-     * Export records Main action
+     * Export records Main ACTION
      * @return page url
      *
      * @author Onofrio Falco
@@ -179,7 +179,7 @@ global with sharing class OpportunityExporterController {
     }
 
     /**
-     * Export as PDF action 
+     * Export as PDF ACTION 
      * @return page url
      * 
      * @author Onofrio Falco
@@ -239,8 +239,8 @@ global with sharing class OpportunityExporterController {
             {
                 dbRes = Database.insert(new Attachment(Body = body, Name = defaultFilename, IsPrivate = false, 
                     ContentType = 'application/pdf;charset=utf-8', ParentId = getRandomOpportunity().Id));
-            } 
-            else 
+            
+            } else 
             {
                 dbRes = Database.insert(new Attachment(Body = body, Name = defaultFilename, IsPrivate = false, 
                     ContentType = 'application/pdf;charset=utf-8', ParentId = getRandomOpportunity().Id));
@@ -254,7 +254,7 @@ global with sharing class OpportunityExporterController {
     }
 
     /**
-     * Export as JSON action
+     * Export as JSON ACTION
      * @return  a pageReference url
      *
      * @author Onofrio Falco
@@ -316,8 +316,8 @@ global with sharing class OpportunityExporterController {
             {
                 dbRes = Database.insert(new Attachment(Body = body, Name = fileName, IsPrivate = false, 
                     ContentType = 'application/x-Javascript;charset=utf-8', ParentId = getRandomOpportunity().Id));
-            } 
-            else 
+            
+            } else 
             {
                 dbRes = Database.insert(new Attachment(Body = body, Name = defaultFilename, IsPrivate = false, 
                     ContentType = 'application/x-Javascript;charset=utf-8', ParentId = getRandomOpportunity().Id));
@@ -331,7 +331,7 @@ global with sharing class OpportunityExporterController {
     }
 
     /**
-     * Export as CSV action 
+     * Export as CSV ACTION 
      * @return page url
      *
      * @author Onofrio Falco
@@ -344,7 +344,7 @@ global with sharing class OpportunityExporterController {
     }
 
     /**
-     * Back action
+     * Back ACTION
      * @return go back to homepage
      *
      * @author Onofrio Falco
@@ -355,7 +355,7 @@ global with sharing class OpportunityExporterController {
     }
 
     /**
-     * Check URL action
+     * Check URL ACTION
      *
      * @author Onofrio Falco
      */
@@ -486,6 +486,7 @@ global with sharing class OpportunityExporterController {
         headerCsv = headerCsv.trim();
         bodyCsv = bodyCsv.trim();
 
+
         System.debug('Body CSV: ' + bodyCsv);
 
         //CSV string regex
@@ -524,12 +525,12 @@ global with sharing class OpportunityExporterController {
         if(fileName != null) 
         {
             dbRes = Database.insert(new Attachment(Body = body, Name = fileName, IsPrivate = false, 
-                ContentType = 'application/pdf;charset=utf-8', ParentId = getRandomOpportunity().Id));
-        } 
-        else 
+                ContentType = 'text/csv;charset=utf-8', ParentId = getRandomOpportunity().Id));
+        
+        } else 
         {
             dbRes = Database.insert(new Attachment(Body = body, Name = defaultFilename, IsPrivate = false, 
-                ContentType = 'application/pdf;charset=utf-8', ParentId = getRandomOpportunity().Id));
+                ContentType = 'text/csv;charset=utf-8', ParentId = getRandomOpportunity().Id));
         }
             
         
@@ -542,14 +543,20 @@ global with sharing class OpportunityExporterController {
      * Set the content-type of Visualforce page
      * @param  renderAs     first attribute
      * @param  contentType  second attribute
-     * @return             [void]
+     * @return             a boolean
      *
      * @author Onofrio Falco
      */
     @RemoteAction
-    global static void setContentType_Remoting(String renderAs, String contentType) {
-        OpportunityExporterController.contentType = contentType;
-        OpportunityExporterController.renderAs = renderAs;
+    global static Boolean setContentType_Remoting(String rAs, String cType) {
+        OpportunityExporterController.contentType = cType;
+        OpportunityExporterController.renderAs = rAs;
+        if(contentType == null && renderAs == null) {
+            return false;
+
+        }
+
+        return true;
     }
 
     /**
